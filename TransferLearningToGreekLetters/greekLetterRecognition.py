@@ -66,30 +66,64 @@ def load_and_modify_network(model_path):
     return model
 
 def train_network(model, train_loader, epochs=10):
-    """Trains the network on the Greek letters dataset and plots the training error."""
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
+    criterion = nn.NLLLoss()  # Assuming you're using NLLLoss as your criterion
     model.train()
-    losses = []  # List to store loss values
     
+    losses = []  # Store loss values
+    accuracies = []  # Store accuracies
+
     for epoch in range(epochs):
         total_loss = 0
-        for data, target in train_loader:
+        correct = 0
+
+        for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
             output = model(data)
-            loss = F.nll_loss(output, target)
+            loss = criterion(output, target)
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-        
+
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()
+
         avg_loss = total_loss / len(train_loader)
         losses.append(avg_loss)
-        print(f'Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss}')
-    
-    # Plotting the training loss
-    plt.plot(losses, marker='o', linestyle='-', color='blue')
+        accuracy = 100. * correct / len(train_loader.dataset)
+        accuracies.append(accuracy)  # Append accuracy after each epoch
+
+        print(f'Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%')
+
+    # Call to the new plotting function
+    plot_training_metrics(losses, accuracies, epochs)
+
+def plot_training_metrics(losses, accuracies, epochs):
+    """
+    Plots the training loss and accuracy over epochs.
+
+    Parameters:
+    - losses: List of average loss values per epoch.
+    - accuracies: List of accuracy percentages per epoch.
+    - epochs: Total number of epochs.
+    """
+    plt.figure(figsize=(12, 6))
+
+    # Plotting training loss
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, epochs + 1), losses, marker='o', linestyle='-', color='blue')
     plt.title('Training Loss Per Epoch')
     plt.xlabel('Epoch')
     plt.ylabel('Average Loss')
+
+    # Plotting training accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, epochs + 1), accuracies, marker='o', linestyle='-', color='red')
+    plt.title('Training Accuracy Per Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy (%)')
+
+    plt.tight_layout()
     plt.show()
 
 def prepare_dataloader(training_set_path):

@@ -40,39 +40,49 @@ class MyNetwork(nn.Module):
         return F.log_softmax(x, dim=1)
 
 # Useful functions
-
 def train_network(model, train_loader, test_loader, criterion, optimizer, epochs=5):
     train_losses = []
+    train_accuracies = []  # To store training accuracies
+    train_counter = []
     test_losses = []
-    train_accuracies = []
-    test_accuracies = []
+    test_accuracies = []  # To store test accuracies
+    test_counter = [i*len(train_loader.dataset) for i in range(epochs + 1)]
 
+    # Initial test to establish a baseline
+    test_loss, test_accuracy = test_model(model, test_loader, criterion)
+    test_losses.append(test_loss)
+    test_accuracies.append(test_accuracy)
+
+    log_interval = 10
     for epoch in range(epochs):
         model.train()
-        for data, target in train_loader:
+        for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
             output = model(data)
             loss = criterion(output, target)
             loss.backward()
             optimizer.step()
-            train_losses.append(loss.item())
 
-            # Calculate training accuracy for this batch
-            pred = output.data.max(1, keepdim=True)[1]
-            correct = pred.eq(target.data.view_as(pred)).sum().item()
-            train_accuracies.append(correct / len(target))
+            # Calculate accuracy
+            pred = output.argmax(dim=1, keepdim=True) 
+            correct = pred.eq(target.view_as(pred)).sum().item()
+            accuracy = correct / len(data)
 
-        # Evaluate on test set
+            if batch_idx % log_interval == 0:
+                train_losses.append(loss.item())
+                train_accuracies.append(accuracy)  # Append accuracy
+                examples_seen = epoch * len(train_loader.dataset) + batch_idx * len(data)
+                train_counter.append(examples_seen)
+
+        # Test at the end of each epoch
         test_loss, test_accuracy = test_model(model, test_loader, criterion)
-        test_losses.extend([test_loss] * len(train_loader))  # Repeat to match train_losses length for plotting
-        test_accuracies.extend([test_accuracy] * len(train_loader))  # Ditto for accuracies
+        test_losses.append(test_loss)
+        test_accuracies.append(test_accuracy)
 
-        print(f'Epoch {epoch+1}/{epochs} - Train Loss: {train_losses[-1]:.4f} - Test Loss: {test_loss:.4f} - Train Accuracy: {train_accuracies[-1]:.4f} - Test Accuracy: {test_accuracy:.4f}')
-
-    torch.save(model.state_dict(), 'mnist_model.pth')
-    print('Model saved to mnist_model.pth')
-
-    plot_errors(train_losses, test_losses, train_accuracies, test_accuracies, batch_size=64)
+    # Plot losses
+    plot_combined_errors(train_counter, train_losses, test_counter, test_losses, "Loss")
+    # Plot accuracies in a separate graph
+    plot_combined_errors(train_counter, train_accuracies, test_counter, test_accuracies, "Accuracy")
 
 def test_model(model, test_loader, criterion):
     model.eval()
@@ -85,35 +95,18 @@ def test_model(model, test_loader, criterion):
             pred = output.data.max(1, keepdim=True)[1]
             correct += pred.eq(target.data.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
-    accuracy = correct / len(test_loader.dataset)
-    return test_loss, accuracy
+    test_accuracy = correct / len(test_loader.dataset)
+    return test_loss, test_accuracy
 
-# Function to plot the training and testing error
-def plot_errors(train_losses, test_losses, train_accuracies, test_accuracies, batch_size):
-    num_batches = len(train_losses)
-    examples_seen = [batch_size * i for i in range(num_batches)]
-
-    # Plotting training and testing loss in a separate figure
-    plt.figure(figsize=(12,6))  # Adjusted for wider and individual plot
-    plt.plot(examples_seen, train_losses, 'b-', label='Train Loss', linewidth=1)
-    plt.plot(examples_seen, test_losses, 'r-', label='Test Loss', linewidth=1)
-    plt.xlabel('Number of Training Examples Seen')
-    plt.ylabel('Negative Log Likelihood Loss')
-    plt.title('Training and Testing Loss')
-    plt.xticks([i * 25000 for i in range((num_batches * batch_size) // 25000 + 1)])
-    plt.legend()
-    plt.show()  # Show the first plot before moving on to the next
-
-    # Plotting training and testing accuracy in a separate figure
-    plt.figure(figsize=(12,6))  # Adjusted for wider and individual plot
-    plt.plot(examples_seen, train_accuracies, 'g-', label='Train Accuracy', linewidth=1)
-    plt.plot(examples_seen, test_accuracies, 'orange', label='Test Accuracy', linewidth=1)
-    plt.xlabel('Number of Training Examples Seen')
-    plt.ylabel('Accuracy')
-    plt.title('Training and Testing Accuracy')
-    plt.xticks([i * 25000 for i in range((num_batches * batch_size) // 25000 + 1)])
-    plt.legend()
-    plt.show()  # Show the second plot
+def plot_combined_errors(train_counter, train_metric, test_counter, test_metric, metric_name):
+    fig = plt.figure()
+    plt.plot(train_counter, train_metric, color='blue')
+    plt.scatter(test_counter, test_metric, color='red')
+    plt.legend([f'Train {metric_name}', f'Test {metric_name}'], loc='upper right')
+    plt.xlabel('number of training examples seen')
+    plt.ylabel(metric_name)
+    plt.title(f'Train vs Test {metric_name}')
+    plt.show()
     
 # Function to visualize the first six digits of the MNIST test set
 def visualize_test_digits():
