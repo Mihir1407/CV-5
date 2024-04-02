@@ -13,6 +13,7 @@ from torchvision.transforms import functional as TF
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from PIL import Image
+from torchviz import make_dot
 
 # Class definitions
 
@@ -182,6 +183,27 @@ def test_custom_images(model, test_images_directory):
         plt.axis('off')
 
     plt.show()
+    
+def visualize_model_architecture(model):
+    """
+    Visualizes the architecture of a given PyTorch model.
+    
+    Parameters:
+    - model: The PyTorch model to visualize.
+    """
+    # Dummy input that matches the input dimensions expected by the model
+    # For MyNetwork, it expects a single-channel (grayscale) image of 28x28 pixels
+    dummy_input = torch.randn(1, 1, 28, 28)
+    
+    # Forward pass through the model to get the output
+    model_output = model(dummy_input)
+    
+    # Generate the graph
+    dot = make_dot(model_output, params=dict(list(model.named_parameters()) + [('input', dummy_input)]))
+    
+    # Render the graph to visualize it
+    dot.render('model_architecture', format='png', cleanup=True)
+    print("Model architecture saved as 'model_architecture.png'.")
 
 def main(argv):
     """Main function handling the workflow."""
@@ -193,6 +215,8 @@ def main(argv):
     test_images_directory = argv[3]  # Path to the directory containing test images
 
     model = load_and_modify_network(model_path)
+    visualize_model_architecture(model)
+    
     train_loader = prepare_dataloader(training_set_path)
     train_network(model, train_loader)
 
