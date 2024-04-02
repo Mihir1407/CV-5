@@ -32,7 +32,7 @@ class MyNetwork(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
-#Function to train the network, plot training and test errors, and accuracies.
+# Function to train the network, plot training and test errors, and accuracies.
 def train_network(model, train_loader, test_loader, criterion, optimizer, epochs=5):
     train_losses = []
     train_accuracies = []  
@@ -72,7 +72,7 @@ def train_network(model, train_loader, test_loader, criterion, optimizer, epochs
     plot_combined_errors(train_counter, train_losses, test_counter, test_losses, "Loss")
     plot_combined_errors(train_counter, train_accuracies, test_counter, test_accuracies, "Accuracy")
 
-#Function to evaluate the model on test data and calculate the loss and accuracy.
+# Function to evaluate the model on test data and calculate the loss and accuracy.
 def test_model(model, test_loader, criterion):
     model.eval()
     test_loss = 0
@@ -87,7 +87,7 @@ def test_model(model, test_loader, criterion):
     test_accuracy = correct / len(test_loader.dataset)
     return test_loss, test_accuracy
 
-#Function to plot training and testing metrics (either losses or accuracies) on the same graph.
+# Function to plot training and testing metrics (either losses or accuracies) on the same graph.
 def plot_combined_errors(train_counter, train_metric, test_counter, test_metric, metric_name):
     fig = plt.figure()
     plt.plot(train_counter, train_metric, color='blue')
@@ -114,7 +114,7 @@ def visualize_test_digits():
         plt.title(f"Label: {labels[i].item()}")
     plt.show()
     
-#Visualizes the architecture of a given PyTorch model.    
+# Visualizes the architecture of a given PyTorch model.    
 def visualize_model_architecture(model):
     dummy_input = torch.randn(1, 1, 28, 28)
     
@@ -126,7 +126,7 @@ def visualize_model_architecture(model):
     print("Model architecture saved as 'model_architecture.png'.")
 
 
-#Main function to handle workflow of loading and visualizing MNIST dataset.
+# Main function to handle workflow of loading and visualizing MNIST dataset.
 def main(argv):
     visualize_test_digits()
     model = MyNetwork()
