@@ -33,14 +33,14 @@ class MyNetwork(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
-#Loads the trained model from a file.
+# Loads the trained model from a file.
 def load_model(model_path):
     model = MyNetwork()
     model.load_state_dict(torch.load(model_path))
     model.eval()  
     return model
 
-#Converts images to grayscale, resizes, inverts colors, and normalizes.
+# Converts images to grayscale, resizes, inverts colors, and normalizes.
 def preprocess_image(image_path):
     transform = transforms.Compose([
         transforms.Grayscale(),
@@ -52,13 +52,13 @@ def preprocess_image(image_path):
     image = Image.open(image_path)
     return transform(image)
 
-#Runs a forward pass on an image to predict the digit.
+# Runs a forward pass on an image to predict the digit.
 def predict_image(model, image_tensor):
     output = model(image_tensor.unsqueeze(0))  
     _, predicted = torch.max(output, 1)
     return predicted.item()
 
-#Displays images alongside their predicted labels.
+# Displays images alongside their predicted labels.
 def visualize_predictions(image_tensors, predictions):
     plt.figure(figsize=(10, 4))
     for i, (image_tensor, prediction) in enumerate(zip(image_tensors, predictions)):
@@ -69,7 +69,7 @@ def visualize_predictions(image_tensors, predictions):
         plt.axis('off')
     plt.show()
 
-#Processes all images in a directory and predicts their labels using a trained model.
+# Processes all images in a directory and predicts their labels using a trained model.
 def process_images_from_directory(directory_path, model_path): 
     model = load_model(model_path)
     image_paths = [os.path.join(directory_path, filename) for filename in os.listdir(directory_path)]
@@ -84,7 +84,7 @@ def process_images_from_directory(directory_path, model_path):
 
     visualize_predictions(image_tensors, predictions)
 
-#Main function that orchestrates the model evaluation on custom digit images.
+# Main function that orchestrates the model evaluation on custom digit images.
 def main(argv):
     if len(argv) < 3:
         print("Usage: python script_name.py <directory_path> <model_path>")
