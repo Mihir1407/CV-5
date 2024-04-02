@@ -1,4 +1,9 @@
-# import necessary libraries
+# Authors: Aditya Gurnani, Mihir Chitre
+# This script is designed to experiment with various configurations of a convolutional neural network on the FashionMNIST dataset.
+# It systematically varies parameters such as the number of convolutional layers, dropout rate, fully connected layer nodes, and batch size
+# to find the best performing model configuration. The architecture is defined in the ExperimentNetwork class, and the script automates
+# training and evaluation across a predefined range of experimental conditions, reporting the best and worst configurations based on accuracy.
+
 import sys
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
@@ -10,20 +15,22 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 import time
 
+"""
+    Defines a customizable convolutional neural network architecture for image classification.
+    Allows dynamic specification of convolutional layers, filter count, dropout rate, and fully connected nodes.
+"""
 class ExperimentNetwork(nn.Module):
     def __init__(self, conv_layers=2, num_filters=10, dropout_rate=0.5, fc_nodes=50):
         super(ExperimentNetwork, self).__init__()
         self.conv_layers = nn.ModuleList()
-        self.feature_size = 28  # Initial size of the image
+        self.feature_size = 28  
         for i in range(conv_layers):
             in_channels = 1 if i == 0 else num_filters
             self.conv_layers.append(nn.Conv2d(in_channels, num_filters, kernel_size=5, padding=2))
-            # After each conv layer, apply ReLU (no change in size) and then MaxPool which halves the dimensions
-            self.feature_size //= 2  # MaxPool2d with kernel_size=2
+            self.feature_size //= 2  
         
         self.dropout = nn.Dropout(dropout_rate)
         
-        # Calculate the size dynamically based on the conv_layers and pooling
         fc_input_size = num_filters * self.feature_size * self.feature_size
         self.fc1 = nn.Linear(fc_input_size, fc_nodes)  # Now using the fc_nodes parameter
         self.fc2 = nn.Linear(fc_nodes, 10)
@@ -37,8 +44,11 @@ class ExperimentNetwork(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+"""
+    Trains the model on the training dataset and evaluates it on the test dataset.
+    Returns the accuracy of the model on the test set.
+"""
 def train_and_evaluate(model, train_loader, test_loader, epochs=1):
-     # Move model to GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     
@@ -67,12 +77,15 @@ def train_and_evaluate(model, train_loader, test_loader, epochs=1):
     accuracy = 100. * correct / len(test_loader.dataset)
     return accuracy
 
+"""
+    Runs a series of experiments with varying model configurations to identify the best and worst settings.
+    Experiments are limited to 100 variations for manageability. Results are sorted by accuracy.
+"""
 def run_experiments():
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     trainset = MNIST(root='./data', train=True, download=True, transform=transform)
     testset = MNIST(root='./data', train=False, download=True, transform=transform)
 
-    # Adjusted ranges for achieving at least 100 variations with around 25 values for epochs and dropout rates
     conv_layers_options = [1, 2, 3, 4]
     epochs_options = list(range(1, 26, 1))
     dropout_rates_options = [x * 0.04 for x in range(1, 26)]
@@ -150,7 +163,6 @@ def run_experiments():
           f"Dropout: {best_config[2]}, FC Nodes: {best_config[3]}, "
           f"Batch Size: {best_config[4]}, Accuracy: {best_config[5]:.2f}%")
     
-    # Print the worst configuration (last in the sorted list)
     worst_config = results[-1]
     print(f"Worst Configuration: Conv Layers: {worst_config[0]}, Epochs: {worst_config[1]}, "
           f"Dropout: {worst_config[2]}, FC Nodes: {worst_config[3]}, "
