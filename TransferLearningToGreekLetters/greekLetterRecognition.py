@@ -13,6 +13,7 @@ from torchvision.transforms import functional as TF
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from PIL import Image
+from torchviz import make_dot
 
 # Class definitions
 
@@ -52,6 +53,19 @@ class GreekTransform:
         x = TF.invert(x)
         return x
 
+# def prepare_dataloader(training_set_path, batch_size=64):
+#     transform = transforms.Compose([
+#         transforms.Resize((133, 133)),
+#         transforms.RandomRotation(degrees=15),
+#         transforms.RandomHorizontalFlip(),
+#         transforms.ToTensor(),
+#         GreekTransform(),
+#         transforms.Normalize((0.1307,), (0.3081,))
+#     ])
+#     dataset = datasets.ImageFolder(root=training_set_path, transform=transform)
+#     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+#     return loader
+
 # Useful functions
 
 def load_and_modify_network(model_path):
@@ -62,10 +76,13 @@ def load_and_modify_network(model_path):
         param.requires_grad = False
     # Replace the last layer with one suited for three classes (alpha, beta, gamma)
     num_features = model.fc1.out_features
-    model.fc2 = nn.Linear(num_features, 3)
+    model.fc2 = nn.Linear(num_features, 5)
     return model
 
-def train_network(model, train_loader, epochs=10):
+def train_network(model, train_loader, epochs=30):
+    # optimizer = optim.Adam(model.parameters(), lr=lr)
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    # criterion = nn.NLLLoss()
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, momentum=0.9)
     criterion = nn.NLLLoss()  # Assuming you're using NLLLoss as your criterion
     model.train()
@@ -87,7 +104,7 @@ def train_network(model, train_loader, epochs=10):
 
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
-
+        # scheduler.step()
         avg_loss = total_loss / len(train_loader)
         losses.append(avg_loss)
         accuracy = 100. * correct / len(train_loader.dataset)
@@ -148,7 +165,7 @@ def test_custom_images(model, test_images_directory):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
 
-    class_labels = {0: 'alpha', 1: 'beta', 2: 'gamma'}
+    class_labels = {0: 'alpha', 1: 'beta', 2: 'gamma', 3: 'lambda', 4: 'theta'}
     images_paths = [os.path.join(test_images_directory, f) for f in os.listdir(test_images_directory) if os.path.isfile(os.path.join(test_images_directory, f))]
 
     plt.figure(figsize=(10, 10))
@@ -166,6 +183,27 @@ def test_custom_images(model, test_images_directory):
         plt.axis('off')
 
     plt.show()
+    
+def visualize_model_architecture(model):
+    """
+    Visualizes the architecture of a given PyTorch model.
+    
+    Parameters:
+    - model: The PyTorch model to visualize.
+    """
+    # Dummy input that matches the input dimensions expected by the model
+    # For MyNetwork, it expects a single-channel (grayscale) image of 28x28 pixels
+    dummy_input = torch.randn(1, 1, 28, 28)
+    
+    # Forward pass through the model to get the output
+    model_output = model(dummy_input)
+    
+    # Generate the graph
+    dot = make_dot(model_output, params=dict(list(model.named_parameters()) + [('input', dummy_input)]))
+    
+    # Render the graph to visualize it
+    dot.render('model_architecture', format='png', cleanup=True)
+    print("Model architecture saved as 'model_architecture.png'.")
 
 def main(argv):
     """Main function handling the workflow."""
@@ -177,6 +215,8 @@ def main(argv):
     test_images_directory = argv[3]  # Path to the directory containing test images
 
     model = load_and_modify_network(model_path)
+    visualize_model_architecture(model)
+    
     train_loader = prepare_dataloader(training_set_path)
     train_network(model, train_loader)
 

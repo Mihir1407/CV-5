@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import SGD
 from torch.utils.data import DataLoader
+from torchviz import make_dot
 
 class MyNetwork(nn.Module):
     def __init__(self):
@@ -129,6 +130,27 @@ def visualize_test_digits():
         plt.imshow(images[i].numpy().squeeze(), cmap='gray')
         plt.title(f"Label: {labels[i].item()}")
     plt.show()
+    
+def visualize_model_architecture(model):
+    """
+    Visualizes the architecture of a given PyTorch model.
+    
+    Parameters:
+    - model: The PyTorch model to visualize.
+    """
+    # Dummy input that matches the input dimensions expected by the model
+    # For MyNetwork, it expects a single-channel (grayscale) image of 28x28 pixels
+    dummy_input = torch.randn(1, 1, 28, 28)
+    
+    # Forward pass through the model to get the output
+    model_output = model(dummy_input)
+    
+    # Generate the graph
+    dot = make_dot(model_output, params=dict(list(model.named_parameters()) + [('input', dummy_input)]))
+    
+    # Render the graph to visualize it
+    dot.render('model_architecture', format='png', cleanup=True)
+    print("Model architecture saved as 'model_architecture.png'.")
 
 # Main function
 def main(argv):
@@ -155,6 +177,7 @@ def main(argv):
     train_loader = DataLoader(trainset, batch_size=64, shuffle=True)
     test_loader = DataLoader(testset, batch_size=1000, shuffle=False)
 
+    visualize_model_architecture(model)
     # Call the training function
     train_network(model, train_loader, test_loader, criterion, optimizer)
 
