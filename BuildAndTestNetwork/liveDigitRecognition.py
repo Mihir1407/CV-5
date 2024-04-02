@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.nn.functional as F
 
-#Defines the architecture of a convolutional neural network for digit classification.
+# Defines the architecture of a convolutional neural network for digit classification.
 class MyNetwork(nn.Module):
     def __init__(self):
         super(MyNetwork, self).__init__()
@@ -31,14 +31,14 @@ class MyNetwork(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
     
-#Loads the trained model from a file.
+# Loads the trained model from a file.
 def load_model(model_path):
     model = MyNetwork()
     model.load_state_dict(torch.load(model_path))
     model.eval()  
     return model
 
-#Preprocesses the video frame for digit recognition.
+# Preprocesses the video frame for digit recognition.
 def preprocess_frame(frame):
     transform = transforms.Compose([
         transforms.Grayscale(),
@@ -50,13 +50,13 @@ def preprocess_frame(frame):
     frame = Image.fromarray(frame)
     return transform(frame)
 
-#Predicts the class of a single image tensor using the provided model.
+# Predicts the class of a single image tensor using the provided model.
 def predict_image(model, image_tensor):
     output = model(image_tensor.unsqueeze(0))  
     _, predicted = torch.max(output, 1)
     return predicted.item()
 
-#Recognizes digits from a live video stream using the provided model.
+# Recognizes digits from a live video stream using the provided model.
 def live_video_digit_recognition(model_path):
     model = load_model(model_path)
     cap = cv2.VideoCapture(0) 
